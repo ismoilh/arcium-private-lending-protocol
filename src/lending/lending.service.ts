@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { EncryptionService, LendingParams } from '../encryption/encryption.service';
+import {
+  EncryptionService,
+  LendingParams,
+} from '../encryption/encryption.service';
 import { SolanaService, LendingTransaction } from '../solana/solana.service';
 
 export interface LoanApplication {
@@ -9,7 +12,13 @@ export interface LoanApplication {
   interestRate: number;
   duration: number;
   collateralRatio: number;
-  status: 'pending' | 'approved' | 'rejected' | 'active' | 'repaid' | 'defaulted';
+  status:
+    | 'pending'
+    | 'approved'
+    | 'rejected'
+    | 'active'
+    | 'repaid'
+    | 'defaulted';
   encryptedParams: any;
   riskAssessment?: {
     riskScore: number;
@@ -56,22 +65,28 @@ export class LendingService {
 
   constructor(
     private readonly encryptionService: EncryptionService,
-    private readonly solanaService: SolanaService,
+    private readonly solanaService: SolanaService
   ) {}
 
   /**
    * Submit a loan application with encrypted parameters
    */
-  async submitLoanApplication(params: Omit<LendingParams, 'lenderId'>): Promise<LoanApplication> {
+  async submitLoanApplication(
+    params: Omit<LendingParams, 'lenderId'>
+  ): Promise<LoanApplication> {
     try {
       const applicationId = this.generateId();
-      
+
       // Encrypt the lending parameters
-      const encryptedParams = await this.encryptionService.encryptLendingParams(params);
-      
+      const encryptedParams =
+        await this.encryptionService.encryptLendingParams(params);
+
       // Perform encrypted risk assessment
-      const riskAssessment = await this.encryptionService.performEncryptedRiskAssessment(encryptedParams);
-      
+      const riskAssessment =
+        await this.encryptionService.performEncryptedRiskAssessment(
+          encryptedParams
+        );
+
       const loanApplication: LoanApplication = {
         id: applicationId,
         borrowerId: params.borrowerId,
@@ -87,9 +102,11 @@ export class LendingService {
       };
 
       this.loanApplications.set(applicationId, loanApplication);
-      
-      this.logger.log(`Loan application submitted: ${applicationId}, Status: ${loanApplication.status}`);
-      
+
+      this.logger.log(
+        `Loan application submitted: ${applicationId}, Status: ${loanApplication.status}`
+      );
+
       return loanApplication;
     } catch (error) {
       this.logger.error('Failed to submit loan application', error);
@@ -135,9 +152,11 @@ export class LendingService {
       };
 
       this.loanOffers.set(offerId, loanOffer);
-      
-      this.logger.log(`Loan offer created: ${offerId} for application: ${loanApplicationId}`);
-      
+
+      this.logger.log(
+        `Loan offer created: ${offerId} for application: ${loanApplicationId}`
+      );
+
       return loanOffer;
     } catch (error) {
       this.logger.error('Failed to create loan offer', error);
@@ -148,7 +167,10 @@ export class LendingService {
   /**
    * Accept a loan offer and create an active loan
    */
-  async acceptLoanOffer(offerId: string, borrowerId: string): Promise<ActiveLoan> {
+  async acceptLoanOffer(
+    offerId: string,
+    borrowerId: string
+  ): Promise<ActiveLoan> {
     try {
       const offer = this.loanOffers.get(offerId);
       if (!offer) {
@@ -190,16 +212,18 @@ export class LendingService {
       };
 
       this.activeLoans.set(loanId, activeLoan);
-      
+
       // Update offer status
       offer.status = 'accepted';
-      
+
       // Update application status
       application.status = 'active';
       application.updatedAt = new Date();
 
-      this.logger.log(`Loan offer accepted: ${offerId}, Active loan created: ${loanId}`);
-      
+      this.logger.log(
+        `Loan offer accepted: ${offerId}, Active loan created: ${loanId}`
+      );
+
       return activeLoan;
     } catch (error) {
       this.logger.error('Failed to accept loan offer', error);
@@ -228,7 +252,10 @@ export class LendingService {
       // Calculate payment details
       const monthlyInterest = (loan.remainingAmount * loan.interestRate) / 12;
       const principalPayment = paymentAmount - monthlyInterest;
-      const newRemainingAmount = Math.max(0, loan.remainingAmount - principalPayment);
+      const newRemainingAmount = Math.max(
+        0,
+        loan.remainingAmount - principalPayment
+      );
 
       // Update loan
       loan.remainingAmount = newRemainingAmount;
@@ -250,8 +277,10 @@ export class LendingService {
         timestamp: new Date(),
       };
 
-      this.logger.log(`Loan payment processed: ${loanId}, Amount: ${paymentAmount}`);
-      
+      this.logger.log(
+        `Loan payment processed: ${loanId}, Amount: ${paymentAmount}`
+      );
+
       return { transaction, loan };
     } catch (error) {
       this.logger.error('Failed to process loan payment', error);
@@ -262,11 +291,13 @@ export class LendingService {
   /**
    * Get loan applications for a borrower
    */
-  async getBorrowerApplications(borrowerId: string): Promise<LoanApplication[]> {
+  async getBorrowerApplications(
+    borrowerId: string
+  ): Promise<LoanApplication[]> {
     const applications = Array.from(this.loanApplications.values())
-      .filter(app => app.borrowerId === borrowerId)
+      .filter((app) => app.borrowerId === borrowerId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     return applications;
   }
 
@@ -275,9 +306,9 @@ export class LendingService {
    */
   async getLenderOffers(lenderId: string): Promise<LoanOffer[]> {
     const offers = Array.from(this.loanOffers.values())
-      .filter(offer => offer.lenderId === lenderId)
+      .filter((offer) => offer.lenderId === lenderId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     return offers;
   }
 
@@ -286,9 +317,9 @@ export class LendingService {
    */
   async getUserActiveLoans(userId: string): Promise<ActiveLoan[]> {
     const loans = Array.from(this.activeLoans.values())
-      .filter(loan => loan.borrowerId === userId || loan.lenderId === userId)
+      .filter((loan) => loan.borrowerId === userId || loan.lenderId === userId)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     return loans;
   }
 
@@ -297,16 +328,18 @@ export class LendingService {
    */
   async getAvailableLoanApplications(): Promise<LoanApplication[]> {
     const applications = Array.from(this.loanApplications.values())
-      .filter(app => app.status === 'approved')
+      .filter((app) => app.status === 'approved')
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     return applications;
   }
 
   /**
    * Get loan application details (without sensitive encrypted data)
    */
-  async getLoanApplicationDetails(applicationId: string): Promise<Partial<LoanApplication>> {
+  async getLoanApplicationDetails(
+    applicationId: string
+  ): Promise<Partial<LoanApplication>> {
     const application = this.loanApplications.get(applicationId);
     if (!application) {
       throw new Error('Loan application not found');
@@ -338,12 +371,20 @@ export class LendingService {
     const loans = Array.from(this.activeLoans.values());
 
     const totalApplications = applications.length;
-    const approvedApplications = applications.filter(app => app.status === 'approved').length;
-    const activeLoansCount = loans.filter(loan => loan.status === 'active').length;
-    const totalLent = loans.reduce((sum, loan) => sum + loan.principalAmount, 0);
-    const averageInterestRate = loans.length > 0 
-      ? loans.reduce((sum, loan) => sum + loan.interestRate, 0) / loans.length 
-      : 0;
+    const approvedApplications = applications.filter(
+      (app) => app.status === 'approved'
+    ).length;
+    const activeLoansCount = loans.filter(
+      (loan) => loan.status === 'active'
+    ).length;
+    const totalLent = loans.reduce(
+      (sum, loan) => sum + loan.principalAmount,
+      0
+    );
+    const averageInterestRate =
+      loans.length > 0
+        ? loans.reduce((sum, loan) => sum + loan.interestRate, 0) / loans.length
+        : 0;
 
     return {
       totalApplications,

@@ -8,5 +8,6 @@ import { SolanaModule } from '../solana/solana.module';
   imports: [EncryptionModule, SolanaModule],
   providers: [LendingService],
   controllers: [LendingController],
+  exports: [LendingService],
 })
 export class LendingModule {}

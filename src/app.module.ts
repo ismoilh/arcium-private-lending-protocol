@@ -13,6 +13,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { RiskModule } from './risk/risk.module';
 import { LiquidationModule } from './liquidation/liquidation.module';
 import { GovernanceModule } from './governance/governance.module';
+import { MagicBlockModule } from './magicblock/magicblock.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -40,6 +41,7 @@ import { AppService } from './app.service';
     RiskModule,
     LiquidationModule,
     GovernanceModule,
+    MagicBlockModule,
   ],
   controllers: [AppController],
   providers: [AppService],
