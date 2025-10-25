@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LendingModule } from './lending/lending.module';
 import { EncryptionModule } from './encryption/encryption.module';
 import { SolanaModule } from './solana/solana.module';
+import { ArciumModule } from './arcium/arcium.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
@@ -23,16 +24,19 @@ import { AppService } from './app.service';
     }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minute
-      limit: 100, // 100 requests per minute
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute
+      },
+    ]),
     DatabaseModule,
     AuthModule,
     MonitoringModule,
     LendingModule,
     EncryptionModule,
     SolanaModule,
+    ArciumModule,
     RiskModule,
     LiquidationModule,
     GovernanceModule,

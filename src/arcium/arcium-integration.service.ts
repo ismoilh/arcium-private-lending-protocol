@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ArciumRealService } from './arcium-real.service';
 
 /**
  * Arcium Integration Service
@@ -34,7 +35,10 @@ export class ArciumIntegrationService {
   private readonly arciumApiKey: string;
   private readonly arciumNetworkUrl: string;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private arciumRealService: ArciumRealService
+  ) {
     this.arciumApiKey =
       this.configService.get<string>('ARCIUM_API_KEY') || 'demo-key';
     this.arciumNetworkUrl =
@@ -75,31 +79,21 @@ export class ArciumIntegrationService {
 
       const startTime = Date.now();
 
-      // Simulate encrypted computation based on function name
-      let result: any;
+      // Use real Arcium service for encrypted computation
+      const realRequest = {
+        functionName: request.functionName,
+        inputs: request.encryptedInputs,
+        metadata: request.metadata,
+      };
 
-      switch (request.functionName) {
-        case 'riskAssessment':
-          result = await this.encryptedRiskAssessment(request.encryptedInputs);
-          break;
-        case 'collateralValidation':
-          result = await this.encryptedCollateralValidation(
-            request.encryptedInputs
-          );
-          break;
-        case 'interestCalculation':
-          result = await this.encryptedInterestCalculation(
-            request.encryptedInputs
-          );
-          break;
-        case 'liquidationCheck':
-          result = await this.encryptedLiquidationCheck(
-            request.encryptedInputs
-          );
-          break;
-        default:
-          throw new Error(`Unknown function: ${request.functionName}`);
+      const realResult =
+        await this.arciumRealService.performEncryptedComputation(realRequest);
+
+      if (!realResult.success) {
+        throw new Error(realResult.error || 'Computation failed');
       }
+
+      const result = realResult.result;
 
       const executionTime = Date.now() - startTime;
 
@@ -308,12 +302,24 @@ export class ArciumIntegrationService {
     latency: number;
     version: string;
   }> {
-    return {
-      connected: true,
-      nodes: 100, // Simulate 100 MPC nodes
-      latency: Math.random() * 50 + 10, // 10-60ms latency
-      version: '1.0.0',
-    };
+    try {
+      // Use real Arcium service for network status
+      const status = await this.arciumRealService.getNetworkStatus();
+      return {
+        connected: status.connected,
+        nodes: status.activeNodes,
+        latency: status.averageLatency,
+        version: '1.0.0',
+      };
+    } catch (error) {
+      this.logger.error('Failed to get network status', error);
+      return {
+        connected: false,
+        nodes: 0,
+        latency: 0,
+        version: '1.0.0',
+      };
+    }
   }
 
   /**
@@ -324,18 +330,38 @@ export class ArciumIntegrationService {
     costUSD: number;
     executionTime: number;
   }> {
-    const baseGas = 100000;
-    const complexityMultiplier = this.getComplexityMultiplier(
-      request.functionName
-    );
+    try {
+      // Use real Arcium service for cost estimation
+      const realRequest = {
+        functionName: request.functionName,
+        inputs: request.encryptedInputs,
+        metadata: request.metadata,
+      };
 
-    return {
-      gasEstimate: baseGas * complexityMultiplier,
-      costUSD: parseFloat(
-        (baseGas * complexityMultiplier * 0.000001).toFixed(6)
-      ),
-      executionTime: 1000 * complexityMultiplier,
-    };
+      const estimate =
+        await this.arciumRealService.estimateComputationCost(realRequest);
+
+      return {
+        gasEstimate: estimate.estimatedGas,
+        costUSD: estimate.estimatedCost,
+        executionTime: estimate.estimatedTime,
+      };
+    } catch (error) {
+      this.logger.error('Failed to estimate cost', error);
+      // Fallback to simulation
+      const baseGas = 100000;
+      const complexityMultiplier = this.getComplexityMultiplier(
+        request.functionName
+      );
+
+      return {
+        gasEstimate: baseGas * complexityMultiplier,
+        costUSD: parseFloat(
+          (baseGas * complexityMultiplier * 0.000001).toFixed(6)
+        ),
+        executionTime: 1000 * complexityMultiplier,
+      };
+    }
   }
 
   private getComplexityMultiplier(functionName: string): number {

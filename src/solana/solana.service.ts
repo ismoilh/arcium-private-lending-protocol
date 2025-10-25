@@ -48,11 +48,16 @@ export class SolanaService {
   private readonly lendingProgramId: PublicKey;
 
   constructor(private configService: ConfigService) {
-    const rpcUrl = this.configService.get<string>('SOLANA_RPC_URL') || 'https://api.devnet.solana.com';
+    const rpcUrl =
+      this.configService.get<string>('SOLANA_RPC_URL') ||
+      'https://api.devnet.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
-    
+
     // In a real implementation, this would be your deployed program ID
-    this.lendingProgramId = new PublicKey('11111111111111111111111111111111');
+    const publicKey =
+      this.configService.get<string>('SOLANA_PUBLIC_KEY') ||
+      '11111111111111111111111111111111';
+    this.lendingProgramId = new PublicKey(publicKey);
   }
 
   /**
@@ -108,14 +113,16 @@ export class SolanaService {
   /**
    * Gets all token accounts for a wallet
    */
-  private async getTokenAccounts(publicKey: PublicKey): Promise<TokenAccount[]> {
+  private async getTokenAccounts(
+    publicKey: PublicKey
+  ): Promise<TokenAccount[]> {
     try {
       const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
         publicKey,
         { programId: TOKEN_PROGRAM_ID }
       );
 
-      return tokenAccounts.value.map(account => ({
+      return tokenAccounts.value.map((account) => ({
         address: account.pubkey.toString(),
         mint: account.account.data.parsed.info.mint,
         amount: account.account.data.parsed.info.tokenAmount.uiAmount,
@@ -289,7 +296,10 @@ export class SolanaService {
       const mintPubkey = new PublicKey(mint);
       const toPubkey = new PublicKey(toPublicKey);
 
-      const tokenAccount = await this.getOrCreateTokenAccount(payerKeypair, mintPubkey);
+      const tokenAccount = await this.getOrCreateTokenAccount(
+        payerKeypair,
+        mintPubkey
+      );
       const mintInfo = await getMint(this.connection, mintPubkey);
       const mintAmount = amount * Math.pow(10, mintInfo.decimals);
 
@@ -321,10 +331,15 @@ export class SolanaService {
   /**
    * Gets transaction history for a wallet
    */
-  async getTransactionHistory(publicKey: string, limit: number = 10): Promise<LendingTransaction[]> {
+  async getTransactionHistory(
+    publicKey: string,
+    limit: number = 10
+  ): Promise<LendingTransaction[]> {
     try {
       const pubkey = new PublicKey(publicKey);
-      const signatures = await this.connection.getSignaturesForAddress(pubkey, { limit });
+      const signatures = await this.connection.getSignaturesForAddress(pubkey, {
+        limit,
+      });
 
       const transactions: LendingTransaction[] = [];
 
